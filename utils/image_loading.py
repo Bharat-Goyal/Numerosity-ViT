@@ -1,9 +1,12 @@
 import os
 from PIL import Image
+from transformers import ViTImageProcessor
+import torch
 
 def fetch_images(directory):
     image_dict = {}
-    
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    processor = ViTImageProcessor.from_pretrained('google/vit-base-patch16-224')
     # Iterate over immediate subdirectories
     for subdir in os.listdir(directory):
         subdir_path = os.path.join(directory, subdir)
@@ -17,11 +20,11 @@ def fetch_images(directory):
                 
                 # Check if it's an image file
                 if os.path.isfile(file_path) and file.lower().endswith(('.png', '.jpg', '.jpeg')):
-                    image = Image.open(file_path)
+                    image = Image.open(file_path).convert("RGB")
                     image_list.append(image)
             # Add the image list to the dictionary with the subdirectory name as the key
-            image_dict[subdir] = image_list
-    
+            image_dict[subdir] = processor(images=image_list, return_tensors="pt").to(device).pixel_values
+    #Returns experimentwise images, which have already been downsamples to ViT input range. 
     return image_dict
 
 if __name__ == '__main__': 
